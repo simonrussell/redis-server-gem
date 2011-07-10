@@ -9,7 +9,7 @@ Gem::Specification.new do |s|
 
   s.author = 'Simon Russell'
   s.email = 'spam+redis-server@bellyphant.com'
-  s.homepage = 'http://github.com/simonrussell/redis-server'
+  s.homepage = 'http://github.com/simonrussell/redis-server-gem'
   
   s.executables << 'redis'
   
