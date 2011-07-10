@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.email = 'spam+redis-server@bellyphant.com'
   s.homepage = 'http://github.com/simonrussell/redis-server'
   
-  s.executables << 'redis-server'
+  s.executables << 'redis'
   
   s.required_ruby_version = '>= 1.9.2'
 
