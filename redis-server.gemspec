@@ -4,7 +4,7 @@ Gem::Specification.new do |s|
   s.version = '0.0.1'
   s.summary = 'Gem wrapper to install redis'
   s.description = <<-EOS
-                    Gem to install the redis server; makes things easy in certain deployment situations.
+                    Gem to install the redis server; makes things easy.
                   EOS
 
   s.author = 'Simon Russell'
@@ -19,4 +19,6 @@ Gem::Specification.new do |s|
 
   s.extensions << 'redis/extconf.rb'
   
+  s.add_dependency 'clamp', '~> 0.2.1'
+  s.add_dependency 'daemon_controller', '~> 0.2.6'
 end
