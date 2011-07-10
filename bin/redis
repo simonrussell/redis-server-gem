@@ -1,3 +1,114 @@
 #!/usr/bin/env ruby
 
+require 'daemon_controller'
+require 'clamp'
+require 'socket'
 
+class RedisController
+
+  MYSELF = File.expand_path($0)
+  REDIS_EXEC_ROOT = File.expand_path(File.join(File.dirname(__FILE__), '..', 'redis', 'redis-2.2.11', 'src'))
+
+  def initialize(options = {})
+    @db_dir = options.fetch(:db_dir) { Dir.pwd }
+    @log_path = options.fetch(:log_path) { File.join(@db_dir, 'redis.log') }
+    @pid_path = options.fetch(:pid_path) { File.join(@db_dir, 'redis.pid') }
+    @port = options.fetch(:port, 6379)
+
+    @daemon = DaemonController.new(
+                :identifier => 'Redis server',
+                :start_command => "#{MYSELF} generate-config --daemonize | #{File.join(REDIS_EXEC_ROOT, 'redis-server')} -",
+                :ping_command => lambda { TCPSocket.new('localhost', @port) },
+                :pid_file => @pid_path,
+                :log_file => @log_path
+              )
+  end
+
+  def generate_config(options = {})
+    daemonize = options.fetch(:daemonize, false)
+
+    result = <<-EOS
+      port #{@port}
+      loglevel verbose
+      databases 16
+      save 900 1
+      save 300 10
+      save 60 10000
+      rdbcompression yes
+      dbfilename dump.rdb
+      dir #{@db_dir}
+    EOS
+
+    if daemonize
+      result << <<-EOS
+        daemonize yes
+        pidfile #{@pid_path}
+        logfile #{@log_path}
+      EOS
+    else
+      result << <<-EOS
+        daemonize no
+        logfile stdout
+      EOS
+    end
+
+    result
+  end
+
+  def start
+    @daemon.start
+  end
+
+  def stop
+    @daemon.stop
+  end
+
+  def run
+    exec "#{MYSELF} generate-config | #{File.join(REDIS_EXEC_ROOT, 'redis-server')} -"
+  end
+
+  def cli
+    exec File.join(REDIS_EXEC_ROOT, 'redis-cli')
+  end
+
+end
+
+$redis_controller = RedisController.new
+
+class RedisCommand < Clamp::Command
+
+  subcommand 'generate-config', "Output a redis config file to stdout" do
+    option '--[no-]daemonize', :flag, 'start the server daemonized (or not)'
+
+    def execute
+      puts $redis_controller.generate_config(:daemonize => daemonize?)
+    end
+  end
+
+  subcommand 'start', "Start the redis server" do
+    def execute
+      $redis_controller.start
+    end
+  end
+
+  subcommand 'stop', "Stop the redis server" do
+    def execute
+      $redis_controller.stop
+    end
+  end
+
+  subcommand 'run', "Run the redis server in-process" do
+    def execute
+      $redis_controller.run
+    end
+  end
+
+  subcommand 'cli', "Start the redis CLI" do
+    def execute
+      $redis_controller.cli
+    end
+  end
+
+end
+
+RedisCommand.run
