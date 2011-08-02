@@ -1,5 +1,5 @@
 all:
-	cd redis-2.2.11 && $(MAKE) $@
+	cd redis-2.2.12 && $(MAKE) $@
 
 install:
 	echo

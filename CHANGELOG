@@ -1,0 +1,9 @@
+0.0.2
+-----
+
+- upgrade to Redis 2.2.12
+
+0.0.1
+-----
+
+- initial release; Redis 2.2.11

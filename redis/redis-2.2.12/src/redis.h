@@ -49,6 +49,8 @@
 #define REDIS_SHARED_INTEGERS 10000
 #define REDIS_REPLY_CHUNK_BYTES (5*1500) /* 5 TCP packets with default MTU */
 #define REDIS_MAX_LOGMSG_LEN    1024 /* Default maximum length of syslog messages */
+#define REDIS_SLOWLOG_LOG_SLOWER_THAN 10000
+#define REDIS_SLOWLOG_MAX_LEN 64
 
 /* Hash table parameters */
 #define REDIS_HT_MINFILL        10      /* Minimal hash table fill 10% */
@@ -312,6 +314,7 @@ typedef struct redisClient {
     sds querybuf;
     int argc;
     robj **argv;
+    struct redisCommand *cmd;
     int reqtype;
     int multibulklen;       /* number of multi bulk arguments left to read */
     long bulklen;           /* length of bulk argument in multi bulk request */
@@ -388,6 +391,10 @@ struct redisServer {
     long long stat_evictedkeys;     /* number of evicted keys (maxmemory) */
     long long stat_keyspace_hits;   /* number of successful lookups of keys */
     long long stat_keyspace_misses; /* number of failed lookups of keys */
+    list *slowlog;
+    long long slowlog_entry_id;
+    long long slowlog_log_slower_than;
+    unsigned long slowlog_max_len;
     /* Configuration */
     int verbosity;
     int maxidletime;
@@ -694,7 +701,7 @@ void popGenericCommand(redisClient *c, int where);
 void unwatchAllKeys(redisClient *c);
 void initClientMultiState(redisClient *c);
 void freeClientMultiState(redisClient *c);
-void queueMultiCommand(redisClient *c, struct redisCommand *cmd);
+void queueMultiCommand(redisClient *c);
 void touchWatchedKey(redisDb *db, robj *key);
 void touchWatchedKeysOnFlush(int dbid);
 
@@ -782,7 +789,7 @@ int processCommand(redisClient *c);
 void setupSignalHandlers(void);
 struct redisCommand *lookupCommand(sds name);
 struct redisCommand *lookupCommandByCString(char *s);
-void call(redisClient *c, struct redisCommand *cmd);
+void call(redisClient *c);
 int prepareForShutdown();
 void redisLog(int level, const char *fmt, ...);
 void usage();
@@ -813,7 +820,7 @@ void vmReopenSwapFile(void);
 int vmFreePage(off_t page);
 void zunionInterBlockClientOnSwappedKeys(redisClient *c, struct redisCommand *cmd, int argc, robj **argv);
 void execBlockClientOnSwappedKeys(redisClient *c, struct redisCommand *cmd, int argc, robj **argv);
-int blockClientOnSwappedKeys(redisClient *c, struct redisCommand *cmd);
+int blockClientOnSwappedKeys(redisClient *c);
 int dontWaitForSwappedKey(redisClient *c, robj *key);
 void handleClientsBlockedOnSwappedKey(redisDb *db, robj *key);
 vmpointer *vmSwapObjectBlocking(robj *val);
@@ -863,6 +870,7 @@ int ll2string(char *s, size_t len, long long value);
 int isStringRepresentableAsLong(sds s, long *longval);
 int isStringRepresentableAsLongLong(sds s, long long *longval);
 int isObjectRepresentableAsLongLong(robj *o, long long *llongval);
+long long ustime(void);
 
 /* Configuration */
 void loadServerConfig(char *filename);
