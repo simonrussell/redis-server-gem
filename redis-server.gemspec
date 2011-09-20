@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
 
   s.name = 'redis-server'
-  s.version = '0.0.2'
+  s.version = '0.0.3'
   s.summary = 'Gem wrapper to install redis'
   s.description = <<-EOS
                     Gem to install the redis server; makes things easy.
