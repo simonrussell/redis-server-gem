@@ -15,13 +15,7 @@ class RedisController
     @pid_path = options.fetch(:pid_path) { File.join(@db_dir, 'redis.pid') }
     @port = options.fetch(:port, 6379)
 
-    @daemon = DaemonController.new(
-                :identifier => 'Redis server',
-                :start_command => "#{MYSELF} generate-config --daemonize | #{File.join(REDIS_EXEC_ROOT, 'redis-server')} -",
-                :ping_command => lambda { TCPSocket.new('localhost', @port) },
-                :pid_file => @pid_path,
-                :log_file => @log_path
-              )
+
   end
 
   def generate_config(options = {})
@@ -56,21 +50,39 @@ class RedisController
   end
 
   def start
-    @daemon.start
+    daemon.start
   end
 
   def stop
-    @daemon.stop
+    daemon.stop
   end
 
   def run
-    exec "#{MYSELF} generate-config | #{File.join(REDIS_EXEC_ROOT, 'redis-server')} -"
+    exec "#{MYSELF} generate-config | #{bin('redis-server')} -"
   end
 
   def cli
-    exec File.join(REDIS_EXEC_ROOT, 'redis-cli')
+    exec bin('redis-cli')
   end
 
+  def bin(binary)
+    path = File.join(REDIS_EXEC_ROOT, binary)
+    raise Errno::ENOENT.new(path) unless File.file?(path)
+    path
+  end
+
+  private
+  
+  def daemon
+    @daemon ||= DaemonController.new(
+                :identifier => 'Redis server',
+                :start_command => "#{MYSELF} generate-config --daemonize | #{bin('redis-server')} -",
+                :ping_command => lambda { TCPSocket.new('localhost', @port) },
+                :pid_file => @pid_path,
+                :log_file => @log_path
+              )
+  end
+  
 end
 
 $redis_controller = RedisController.new
@@ -106,6 +118,17 @@ class RedisCommand < Clamp::Command
   subcommand 'cli', "Start the redis CLI" do
     def execute
       $redis_controller.cli
+    end
+  end
+  
+  subcommand 'bin', "Output the path to a redis binary" do
+    parameter "[BINARY]", "binary to find", :default => 'redis-server'
+  
+    def execute
+      puts $redis_controller.bin(binary)
+    rescue Errno::ENOENT
+      STDERR.puts $!
+      exit 1
     end
   end
 
