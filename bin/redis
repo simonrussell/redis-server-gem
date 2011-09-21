@@ -7,7 +7,7 @@ require 'socket'
 class RedisController
 
   MYSELF = File.expand_path($0)
-  REDIS_EXEC_ROOT = File.expand_path(File.join(File.dirname(__FILE__), '..', 'redis', 'redis-2.2.13', 'src'))
+  REDIS_EXEC_ROOT = File.expand_path(File.join(File.dirname(__FILE__), '..', 'redis', 'redis-2.2.14', 'src'))
 
   def initialize(options = {})
     @db_dir = options.fetch(:db_dir) { Dir.pwd }
